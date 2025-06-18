@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ashes of Valor - Interactive GDD</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Ember & Ash -->
+    <!-- Application Structure Plan: A dashboard-style SPA with a fixed sidebar for primary navigation and a main content area that dynamically displays different sections of the game design document. This structure was chosen to allow non-linear exploration of interconnected concepts. Key sections include: 1) A home/vision page, 2) An interactive "Hero's Journey" timeline to visualize narrative progression, 3) A "Kael's Arsenal" section with clickable cards for ability details, 4) A "World Blueprint" section for design strategy and recommendations, and 5) a filterable "Obstacle Glossary". This component-based structure is superior to a linear document for understanding the complex relationships between story, mechanics, and challenges. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Act-by-Act Breakdown -> Goal: Show Change/Organize -> Viz: Interactive vertical timeline (HTML/CSS/JS) -> Interaction: Click act to display details -> Justification: Transforms a static table into an engaging, explorable narrative flow.
+        - Report Info: Kael's Abilities -> Goal: Organize/Inform -> Viz: Interactive Cards (HTML/CSS/JS) -> Interaction: Click card to expand and show details -> Justification: Isolates core mechanics for easy study and comparison.
+        - Report Info: Gradual Difficulty Curve -> Goal: Compare/Show Change -> Viz: Bar Chart (Chart.js) -> Interaction: Hover tooltips -> Justification: Provides a quick, quantitative visualization of a key design principle mentioned in the report.
+        - Report Info: Technical Obstacle Terms -> Goal: Organize -> Viz: Filterable List (HTML/JS) -> Interaction: Live text search -> Justification: Directly addresses user request and makes technical terms easily accessible.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3, .font-cinzel { font-family: 'Cinzel', serif; }
+        .sidebar-icon {
+            width: 24px;
+            height: 24px;
+            stroke-width: 2;
+            fill: none;
+            stroke: currentColor;
+        }
+        .active-nav {
+            background-color: #4a4a4a;
+            color: #f6ad55;
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 400px;
+            max-height: 50vh;
+        }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #2d3748; }
+        ::-webkit-scrollbar-thumb { background: #4a5568; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #718096; }
+    </style>
+</head>
+<body class="bg-gray-800 text-gray-200">
+
+    <div class="flex h-screen">
+        <!-- Sidebar Navigation -->
+        <nav class="w-20 lg:w-64 bg-gray-900 text-white flex flex-col transition-all duration-300">
+            <div class="h-20 flex items-center justify-center border-b border-gray-700">
+                <span class="font-cinzel text-xl font-bold text-amber-500 lg:inline">AOV</span>
+                <span class="hidden lg:inline font-cinzel text-xl font-bold ml-2">GDD</span>
+            </div>
+            <ul class="flex-grow">
+                <li class="nav-item active-nav" data-target="home">
+                    <a href="#" class="flex items-center justify-center lg:justify-start p-4 h-16 text-lg hover:bg-gray-700">
+                        <svg class="sidebar-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                        <span class="ml-4 hidden lg:inline">Vision</span>
+                    </a>
+                </li>
+                <li class="nav-item" data-target="journey">
+                    <a href="#" class="flex items-center justify-center lg:justify-start p-4 h-16 text-lg hover:bg-gray-700">
+                        <svg class="sidebar-icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                        <span class="ml-4 hidden lg:inline">The Hero's Journey</span>
+                    </a>
+                </li>
+                <li class="nav-item" data-target="arsenal">
+                    <a href="#" class="flex items-center justify-center lg:justify-start p-4 h-16 text-lg hover:bg-gray-700">
+                        <svg class="sidebar-icon" viewBox="0 0 24 24"><path d="M12 2l1.45 4.14L18 7.5l-3.5 3.55L16 16l-4-2.18L8 16l1.5-4.95L6 7.5l4.55-.64L12 2zM12 2v19"></path></svg>
+                        <span class="ml-4 hidden lg:inline">Kael's Arsenal</span>
+                    </a>
+                </li>
+                <li class="nav-item" data-target="blueprint">
+                    <a href="#" class="flex items-center justify-center lg:justify-start p-4 h-16 text-lg hover:bg-gray-700">
+                        <svg class="sidebar-icon" viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><line x1="10" y1="9" x2="8" y2="9"></line></svg>
+                        <span class="ml-4 hidden lg:inline">World Blueprint</span>
+                    </a>
+                </li>
+                <li class="nav-item" data-target="glossary">
+                    <a href="#" class="flex items-center justify-center lg:justify-start p-4 h-16 text-lg hover:bg-gray-700">
+                        <svg class="sidebar-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        <span class="ml-4 hidden lg:inline">Obstacle Glossary</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto p-6 lg:p-10">
+            
+            <!-- Home/Vision Section -->
+            <section id="home" class="content-section active">
+                <div class="text-center">
+                    <h1 class="text-5xl font-bold text-amber-400">Ashes of Valor</h1>
+                    <p class="text-xl mt-2 text-gray-400">An Interactive Game Design Blueprint</p>
+                </div>
+
+                <div class="mt-12 bg-gray-900/50 p-8 rounded-lg shadow-lg">
+                    <h2 class="text-3xl font-bold text-amber-500 border-b-2 border-amber-500/30 pb-2">Game Concept & Vision</h2>
+                    <p class="mt-4 text-lg text-gray-300">This section provides a high-level overview of "Ashes of Valor," establishing its core narrative, emotional themes, and intended genre. It serves as the foundational statement for the entire project, defining the player's journey and the world they will inhabit.</p>
+                    <p class="mt-4 text-gray-300">"Ashes of Valor" introduces a deeply personal narrative rooted in loss and the pursuit of justice. The destruction of Virelith and the theft of the mystical Ember Core serve as the catalyst for Kael's journey, establishing a powerful emotional core. The narrative arc progresses from a quest for vengeance to the profound revelation of his brother Aeron's identity as "The Revenant," setting the stage for a compelling and emotionally resonant experience. The game's structure aligns with the **Metroidvania** genre, featuring a large, interconnected world where progression is gated by acquiring new abilities. This is blended with robust **Role-Playing Mechanics** and fast-paced **Action-Adventure** gameplay, creating a rich, hybrid experience.</p>
+                </div>
+                 <div class="mt-8">
+                    <div class="chart-container">
+                        <canvas id="genreChart"></canvas>
+                    </div>
+                    <p class="text-center mt-4 text-gray-400">Genre Mix: A visualization of the core gameplay pillars.</p>
+                </div>
+            </section>
+
+            <!-- The Hero's Journey Section -->
+            <section id="journey" class="content-section">
+                 <h1 class="text-4xl font-bold text-amber-400 mb-2">The Hero's Journey</h1>
+                 <p class="text-lg mb-8 text-gray-300">This section interactively maps out the narrative and mechanical progression of "Ashes of Valor." The story unfolds across several acts, each introducing new challenges, revealing critical plot points, and granting Kael new powers. Click on each act to explore its specific focus, the obstacles Kael will face, and the key mechanics he will utilize or acquire. This timeline provides a clear view of the game's pacing and difficulty curve.</p>
+                 
+                <div class="lg:flex">
+                    <!-- Vertical Timeline -->
+                    <div class="lg:w-1/3 pr-8">
+                        <div id="timeline-nav" class="relative border-l-2 border-gray-600">
+                        </div>
+                    </div>
+
+                    <!-- Details Pane -->
+                    <div id="journey-details" class="lg:w-2/3 mt-8 lg:mt-0 bg-gray-900/50 p-6 rounded-lg">
+                        <h2 id="details-title" class="text-3xl font-bold text-amber-500"></h2>
+                        <p id="details-narrative" class="mt-4 text-gray-300"></p>
+                        <div class="mt-6">
+                            <h3 class="text-xl font-semibold text-amber-400">Obstacles & Challenges</h3>
+                            <ul id="details-obstacles" class="list-disc list-inside mt-2 text-gray-300"></ul>
+                        </div>
+                        <div class="mt-6">
+                            <h3 class="text-xl font-semibold text-amber-400">Key Mechanics</h3>
+                            <ul id="details-mechanics" class="list-disc list-inside mt-2 text-gray-300"></ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Kael's Arsenal Section -->
+            <section id="arsenal" class="content-section">
+                <h1 class="text-4xl font-bold text-amber-400 mb-2">Kael's Arsenal</h1>
+                <p class="text-lg mb-8 text-gray-300">This section details Kael's core abilities, the primary tools players will use to navigate the world, defeat enemies, and solve puzzles. Each power is multifaceted, with applications in combat, traversal, and puzzle-solving. Click on each ability to understand its mechanics and strategic uses. This design philosophy encourages emergent gameplay, where players can creatively combine abilities to overcome challenges.</p>
+
+                <div id="abilities-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Abilities will be injected here by JS -->
+                </div>
+            </section>
+            
+            <!-- World Blueprint Section -->
+            <section id="blueprint" class="content-section">
+                <h1 class="text-4xl font-bold text-amber-400 mb-2">World Blueprint</h1>
+                <p class="text-lg mb-8 text-gray-300">This section outlines the strategic design principles and market positioning for "Ashes of Valor." It includes analysis of current indie game trends, recommendations for concept improvement, and a visualization of the planned difficulty curve, ensuring the project is not only creative but also viable and polished.</p>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="bg-gray-900/50 p-6 rounded-lg">
+                        <h2 class="text-2xl font-bold text-amber-500 mb-4">Unique Selling Propositions</h2>
+                        <ul class="space-y-4">
+                            <li><strong>Emotional, Polished Story:</strong> A concise, single-player narrative avoids filler and focuses on a powerful emotional core.</li>
+                            <li><strong>Hybrid Gameplay:</strong> Seamlessly blends Metroidvania exploration with RPG progression, rhythm combat, and stealth.</li>
+                            <li><strong>Distinct Art Style:</strong> A unique visual identity (e.g., hand-drawn or high-quality pixel art) to convey the themes of ash, fire, and shadow.</li>
+                            <li><strong>Meaningful Player Agency:</strong> Branching narratives with tangible consequences that lead to multiple, distinct endings.</li>
+                        </ul>
+                    </div>
+                    <div class="bg-gray-900/50 p-6 rounded-lg">
+                        <h2 class="text-2xl font-bold text-amber-500 mb-4">Recommendations for Improvement</h2>
+                         <ul class="space-y-4">
+                            <li><strong>Narrative Foreshadowing:</strong> Carefully pace the Aeron reveal with subtle hints to maximize impact.</li>
+                            <li><strong>Environmental Storytelling:</strong> Use "show, don't tell" techniques. The world itself should reflect the growing corruption.</li>
+                            <li><strong>Compelling Antagonist:</strong> Deepen Aeron's motivation to create a more nuanced, memorable villain.</li>
+                            <li><strong>Iterative Playtesting:</strong> Continuously test and refine mechanics, especially rhythm and stealth, to ensure they are fun and intuitive.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="mt-12">
+                    <h2 class="text-3xl font-bold text-amber-500 text-center mb-4">Planned Difficulty & Complexity Curve</h2>
+                    <div class="chart-container">
+                        <canvas id="difficultyChart"></canvas>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- Glossary Section -->
+            <section id="glossary" class="content-section">
+                 <h1 class="text-4xl font-bold text-amber-400 mb-2">Obstacle Glossary</h1>
+                 <p class="text-lg mb-8 text-gray-300">This glossary provides a quick reference for the various environmental hazards, puzzle elements, and enemy types mentioned in the game design. Use the search bar to filter the list and quickly find definitions and context for each technical term.</p>
+                 <input type="text" id="glossary-search" placeholder="Search for an obstacle..." class="w-full max-w-lg p-3 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 mb-8">
+                 <div id="glossary-list" class="space-y-4">
+                     <!-- Glossary items will be injected here by JS -->
+                 </div>
+            </section>
+
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DATA ---
+            const journeyData = [
+                {
+                    id: 'prologue',
+                    title: "Prologue: A Tragic Beginning",
+                    narrative: "Establish Kael's tragic origin, the destruction of Virelith, and his motivation for vengeance. Introduce basic controls and emotional tone.",
+                    obstacles: ["Environmental Hazards: Burning Surfaces, Falling Debris", "Passive Obstacles: Rubble Piles, Unstable Platforms"],
+                    mechanics: ["Basic Movement: Walk, run, jump, climb", "Environmental Interaction: Push/pull objects", "Narrative Triggers: Scripted events, flashbacks"]
+                },
+                {
+                    id: 'act1',
+                    title: "Act 1: The Journey Begins",
+                    narrative: "Kael embarks on his quest, encounters the first Warlord (Rhoan), and gains 'Pulse Step.' Introduce core gameplay loop.",
+                    obstacles: ["Environmental Hazards: Moving Spikes, Rotating Lasers", "Enemy Types: Grunts, Swarm enemies", "Puzzle Elements: Switch Blocks, Pressure Plates", "Boss: Rhoan the Ironbreaker (AoE attacks)"],
+                    mechanics: ["Core Combat: Combos, dodging", "Rhythm-based Combat (Pulse Step): Short-range teleportation", "Player Progression: Unlocking first major ability"]
+                },
+                {
+                    id: 'act2',
+                    title: "Act 2: The Shadows Deepen",
+                    narrative: "Kael uncovers Warlords' corruption, meets Master Orin, and unlocks 'Echo Variants' and 'Veil Drift.' Deepen gameplay with stealth and customization.",
+                    obstacles: ["Enemy Types: Snipers, Sentries (with Line of Sight)", "Stealth Obstacles: Light Switches, Force Fields", "Puzzle-Platformer: Mirror Puzzles, Gravity Wells", "Boss: Serika the Whisperblade (stealth-based)"],
+                    mechanics: ["Stealth Mechanics (Veil Drift): Shadow blending, concealment", "Echo Variants: Introduction of skill tree/character progression", "Environmental Storytelling"]
+                },
+                {
+                    id: 'act3',
+                    title: "Act 3: Twists and Revelations",
+                    narrative: "Kael discovers his brother Aeron is the Revenant, and the plan to awaken Umbraeth. Narrative stakes become personal and apocalyptic.",
+                    obstacles: ["Enemy Types: Squads, Leader enemies (with buffs)", "Dynamic Environments: Collapsing Floors, areas with damage-over-time", "Puzzle-Platformer: Teleport Traps, Magnetic Areas"],
+                    mechanics: ["Advanced Echo Variants: Deeper customization", "Moral Dilemmas/Player Choice: Dialogue options with delayed consequences"]
+                },
+                {
+                    id: 'finalact',
+                    title: "Final Act: The Last Stand",
+                    narrative: "Kael confronts the last Warlord, masters 'True Ember Form,' and faces Aeron, leading to the ultimate choice between redemption, destruction, or sacrifice.",
+                    obstacles: ["Penultimate Boss: Veyla the Stormcaller (projectiles, wind)", "Final Boss: Aeron (multi-phase, tests all abilities)", "Dynamic Arena: Collapsing floors, crushing walls, lava"],
+                    mechanics: ["True Ember Form: Temporary ultimate ability/buff", "Branching Narrative & Endings: Final player choice with tangible consequences"]
+                }
+            ];
+
+            const abilitiesData = [
+                { 
+                    name: "Basic Movement",
+                    icon: `<svg class="w-10 h-10 mx-auto text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>`,
+                    description: "Fundamental character controller for navigation.",
+                    details: {
+                        Combat: "Fundamental dodging, strategic positioning, kiting enemies.",
+                        Traversal: "Walking, running, jumping, basic climbing of ledges and walls.",
+                        Puzzle: "Basic platforming to reach switches, activate pressure plates, or avoid simple hazards."
+                    }
+                },
+                { 
+                    name: "Pulse Step",
+                    icon: `<svg class="w-10 h-10 mx-auto text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0h6"></path></svg>`,
+                    description: "A short-range teleportation activated by rhythm-based input.",
+                    details: {
+                        Combat: "Rapid evasion, repositioning for critical hits, interrupting enemy attacks, initiating rhythm combos.",
+                        Traversal: "Crossing wide chasms, bypassing laser grids, reaching high platforms.",
+                        Puzzle: "Activating distant switches, navigating timed obstacles, bypassing force fields."
+                    }
+                },
+                { 
+                    name: "Veil Drift",
+                    icon: `<svg class="w-10 h-10 mx-auto text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.636 18.364a9 9 0 010-12.728m12.728 0a9 9 0 010 12.728m-9.9-2.829a5 5 0 010-7.07m7.072 0a5 5 0 010 7.07M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>`,
+                    description: "Blend with shadows to become concealed from enemies.",
+                    details: {
+                        Combat: "Initiating stealth attacks, disengaging from combat, setting up ambushes.",
+                        Traversal: "Moving through heavily guarded areas, finding hidden passages.",
+                        Puzzle: "Manipulating enemy patrol paths, using light/shadow to solve puzzles."
+                    }
+                },
+                { 
+                    name: "Echo Variants",
+                    icon: `<svg class="w-10 h-10 mx-auto text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M4 14v5h5m11-5h-5V9h5m0 10h-5v-5h5"></path></svg>`,
+                    description: "A skill-tree system to customize Kael's playstyle.",
+                    details: {
+                        Combat: "Specialize in damage (Fury Echo), defense (Resilience Echo), or other styles.",
+                        Traversal: "Enhance existing abilities (longer range, faster recharge) or unlock new ones (wall jump, glide).",
+                        Puzzle: "Gain specific buffs or interactions to solve puzzles (e.g., reveal hidden clues)."
+                    }
+                },
+                 { 
+                    name: "True Ember Form",
+                    icon: `<svg class="w-10 h-10 mx-auto text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.5-7 2.5 2.5 2.5 7 0 9.5-2 2-2.5 4.5-2.5 4.5s2.5.5 4.5-1.5c2-2 5-2.5 7-2.5 2 0 3.5 1.5 3.5 3.5a8 8 0 01-8.343 8.343z"></path></svg>`,
+                    description: "Kael's ultimate ability; a temporary, powerful transformation.",
+                    details: {
+                        Combat: "Overwhelm bosses, clear large enemy groups, gain temporary invincibility, use powerful AoE attacks.",
+                        Traversal: "Burn through barriers, create new paths, fast travel across dangerous zones.",
+                        Puzzle: "Solve 'Boss Puzzles' that require immense power or specific environmental interactions."
+                    }
+                }
+            ];
+
+            const glossaryData = [
+                { term: "Burning Surfaces", description: "Environmental hazard that deals damage over time on contact." },
+                { term: "Falling Debris", description: "Scripted or dynamic objects that fall from above, creating a traversal hazard." },
+                { term: "Unstable Platforms", description: "Platforms that crumble or fall shortly after the player lands on them." },
+                { term: "Moving Spikes", description: "Traps that move in predictable patterns, requiring timed movement to bypass." },
+                { term: "Rotating Lasers/Saws", description: "Hazards that rotate around a central point, creating a dangerous area to navigate." },
+                { term: "Grunts", description: "Basic, melee-focused enemies that often appear in groups." },
+                { term: "Swarm Enemies", description: "Small, fast enemies that attack in large numbers to overwhelm the player." },
+                { term: "Switch Blocks", description: "Objects that appear/disappear when a corresponding switch is activated." },
+                { term: "Pressure Plates", description: "Triggers activated by the player standing on them, often used for puzzles." },
+                { term: "Area of Effect (AoE)", description: "Attacks that cover a specific area, forcing the player to move out of the damage zone." },
+                { term: "Snipers/Ranged Enemies", description: "Enemies that attack from a distance with projectiles." },
+                { term: "Sentries", description: "Stationary or patrolling enemies with a defined line of sight, crucial for stealth sections." },
+                { term: "Force Fields", description: "Barriers that block progress until deactivated or bypassed with a specific ability." },
+                { term: "Hidden Fake Walls", description: "Illusory walls that can be passed through to find secret areas." },
+                { term: "Mirror Puzzles", description: "Puzzles that involve redirecting beams of light or energy using reflective surfaces." },
+                { term: "Collapsing Floors", description: "Dynamic environmental hazard where the ground gives way." },
+                { term: "Teleport Traps", description: "Objects or areas that forcibly teleport the player when touched." },
+                { term: "Projectile Attacks", description: "Attacks that involve firing a missile, bullet, or energy blast at the player." }
+            ];
+
+            // --- NAVIGATION ---
+            const navItems = document.querySelectorAll('.nav-item');
+            const contentSections = document.querySelectorAll('.content-section');
+
+            navItems.forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const targetId = item.dataset.target;
+
+                    navItems.forEach(nav => nav.classList.remove('active-nav'));
+                    item.classList.add('active-nav');
+
+                    contentSections.forEach(section => {
+                        section.classList.remove('active');
+                        if (section.id === targetId) {
+                            section.classList.add('active');
+                        }
+                    });
+                });
+            });
+            
+            // --- JOURNEY TIMELINE ---
+            const timelineNav = document.getElementById('timeline-nav');
+            journeyData.forEach((item, index) => {
+                const navItem = document.createElement('div');
+                navItem.className = `timeline-item mb-8 flex items-center cursor-pointer ${index === 0 ? 'active' : ''}`;
+                navItem.dataset.id = item.id;
+                navItem.innerHTML = `
+                    <div class="timeline-dot bg-gray-600 w-4 h-4 rounded-full border-2 border-gray-900 -ml-2 z-10"></div>
+                    <p class="ml-4 font-semibold text-lg text-gray-400">${item.title}</p>
+                `;
+                timelineNav.appendChild(navItem);
+            });
+            
+            const timelineItems = document.querySelectorAll('.timeline-item');
+
+            function updateJourneyDetails(id) {
+                const data = journeyData.find(item => item.id === id);
+                if (!data) return;
+
+                document.getElementById('details-title').textContent = data.title;
+                document.getElementById('details-narrative').textContent = data.narrative;
+                
+                const obstaclesList = document.getElementById('details-obstacles');
+                obstaclesList.innerHTML = '';
+                data.obstacles.forEach(obs => {
+                    const li = document.createElement('li');
+                    li.textContent = obs;
+                    obstaclesList.appendChild(li);
+                });
+
+                const mechanicsList = document.getElementById('details-mechanics');
+                mechanicsList.innerHTML = '';
+                data.mechanics.forEach(mech => {
+                    const li = document.createElement('li');
+                    li.textContent = mech;
+                    mechanicsList.appendChild(li);
+                });
+            }
+
+            timelineItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    timelineItems.forEach(i => {
+                        i.querySelector('.timeline-dot').classList.remove('bg-amber-500');
+                        i.querySelector('.timeline-dot').classList.add('bg-gray-600');
+                        i.querySelector('p').classList.remove('text-amber-400');
+                        i.querySelector('p').classList.add('text-gray-400');
+                    });
+                    item.querySelector('.timeline-dot').classList.add('bg-amber-500');
+                    item.querySelector('.timeline-dot').classList.remove('bg-gray-600');
+                    item.querySelector('p').classList.add('text-amber-400');
+                    item.querySelector('p').classList.remove('text-gray-400');
+                    updateJourneyDetails(item.dataset.id);
+                });
+            });
+
+            // Initial load
+            updateJourneyDetails('prologue');
+            const firstTimelineItem = document.querySelector('.timeline-item');
+            firstTimelineItem.querySelector('.timeline-dot').classList.add('bg-amber-500');
+            firstTimelineItem.querySelector('.timeline-dot').classList.remove('bg-gray-600');
+            firstTimelineItem.querySelector('p').classList.add('text-amber-400');
+            firstTimelineItem.querySelector('p').classList.remove('text-gray-400');
+            
+            // --- ABILITIES GRID ---
+            const abilitiesGrid = document.getElementById('abilities-grid');
+            abilitiesData.forEach(ability => {
+                const card = document.createElement('div');
+                card.className = 'ability-card bg-gray-900/50 p-6 rounded-lg cursor-pointer transition-all duration-300 hover:shadow-amber-500/20 hover:shadow-lg';
+                card.innerHTML = `
+                    <div class="flex items-center space-x-4">
+                        ${ability.icon}
+                        <div>
+                            <h3 class="text-xl font-bold text-amber-500">${ability.name}</h3>
+                            <p class="text-gray-400">${ability.description}</p>
+                        </div>
+                    </div>
+                    <div class="ability-details mt-4 border-t border-gray-700 pt-4 hidden">
+                        <h4 class="font-semibold text-amber-400">Combat Use:</h4>
+                        <p class="text-gray-300 mb-2">${ability.details.Combat}</p>
+                        <h4 class="font-semibold text-amber-400">Traversal Use:</h4>
+                        <p class="text-gray-300 mb-2">${ability.details.Traversal}</p>
+                        <h4 class="font-semibold text-amber-400">Puzzle Use:</h4>
+                        <p class="text-gray-300">${ability.details.Puzzle}</p>
+                    </div>
+                `;
+                abilitiesGrid.appendChild(card);
+            });
+
+            abilitiesGrid.addEventListener('click', (e) => {
+                const card = e.target.closest('.ability-card');
+                if (card) {
+                    card.querySelector('.ability-details').classList.toggle('hidden');
+                }
+            });
+
+            // --- GLOSSARY ---
+            const glossaryList = document.getElementById('glossary-list');
+            const glossarySearch = document.getElementById('glossary-search');
+            
+            function renderGlossary(filter = '') {
+                glossaryList.innerHTML = '';
+                const filteredData = glossaryData.filter(item => item.term.toLowerCase().includes(filter.toLowerCase()));
+                
+                if(filteredData.length === 0) {
+                    glossaryList.innerHTML = `<p class="text-gray-500">No matching obstacles found.</p>`;
+                    return;
+                }
+
+                filteredData.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'glossary-item bg-gray-900/50 p-4 rounded-lg';
+                    div.innerHTML = `
+                        <h3 class="font-bold text-lg text-amber-500">${item.term}</h3>
+                        <p class="text-gray-300">${item.description}</p>
+                    `;
+                    glossaryList.appendChild(div);
+                });
+            }
+            
+            glossarySearch.addEventListener('keyup', (e) => {
+                renderGlossary(e.target.value);
+            });
+            renderGlossary();
+
+
+            // --- CHARTS ---
+            const chartFontColor = '#9ca3af';
+            const gridColor = 'rgba(255, 255, 255, 0.1)';
+
+            // Genre Mix Chart
+            const genreCtx = document.getElementById('genreChart').getContext('2d');
+            new Chart(genreCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Metroidvania', 'Action-Adventure', 'RPG', 'Stealth & Rhythm'],
+                    datasets: [{
+                        label: 'Genre Mix',
+                        data: [40, 30, 20, 10],
+                        backgroundColor: ['#c05621', '#dd6b20', '#ed8936', '#f6ad55'],
+                        borderColor: '#2d3748',
+                        borderWidth: 4,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: chartFontColor,
+                                font: { size: 14, family: 'Inter' }
+                            }
+                        },
+                        title: {
+                            display: false
+                        }
+                    },
+                    cutout: '60%'
+                }
+            });
+
+            // Difficulty Curve Chart
+            const difficultyCtx = document.getElementById('difficultyChart').getContext('2d');
+            new Chart(difficultyCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Prologue', 'Act 1', 'Act 2', 'Act 3', 'Final Act'],
+                    datasets: [{
+                        label: 'New Mechanics & Obstacles Introduced',
+                        data: [3, 5, 6, 5, 4],
+                        backgroundColor: 'rgba(246, 173, 85, 0.6)',
+                        borderColor: 'rgba(246, 173, 85, 1)',
+                        borderWidth: 2,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: gridColor },
+                            ticks: { 
+                                color: chartFontColor,
+                                precision: 0 
+                            }
+                        },
+                        x: {
+                             grid: { display: false },
+                             ticks: { color: chartFontColor }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#1a202c',
+                            titleColor: '#f6ad55',
+                            bodyColor: '#cbd5e0',
+                            padding: 10,
+                            cornerRadius: 4
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
